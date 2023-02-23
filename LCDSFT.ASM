@@ -23,16 +23,16 @@
 ;LCD initialisation
 ;----------------
 LCDINIT:
-        mov r7,#10d
-        call DELAY_Nx1.5MS      ;wait 15ms for LCD initialisation
+        mov r7,#250d
+        call DELAY_Nx60US       ;wait 15ms for LCD initialisation
         clr a
         call SFTREG             ;clear shift register
 
         mov a,#010 0011 0b      ;init word for LCD 1/3
         mov r0,a                ;back it up
         call SFTREG
-        mov r7,#4
-        call DELAY_Nx1.5MS      ;wait 6ms (5ms sufficient but..)
+        mov r7,#84d
+        call DELAY_Nx60US       ;wait ~5ms
         clr a
         call SFTREG
 
@@ -124,7 +124,8 @@ COMSEND:orl a,#0100 0000b       ;bit 6 is necessary to shift register
 ;time.
 ;------------------------------------
 STDOUT: call SFTREG
-        call DELAY_1.5MS
+        mov r7,#25d
+        call DELAY_Nx60US
         clr a
         call SFTREG
         ret
@@ -147,22 +148,23 @@ ENDIF
         ret
 
 ;----------------------------
-;(Nx1.5) ms delay, N stored in r7
+;(Nx60) us delay, N stored in r7
 ;----------------------------
-;exact delay time is t2c*(201*N+2)usec
-;residue is t2c*(N+2)usec more
-DELAY_Nx1.5MS:                  ;t2c
-        call DELAY_1.5MS        ;200*Nt2c
-        djnz r7,DELAY_Nx1.5MS   ;N*t2c
+;exact delay time is 2t2c+5Nt2c=60N+15 usec,
+;or, if we count mov r7,#val too, 60N+22.5 usec.
+DELAY_Nx60US:                   ;t2c to call
+        call DELAY_52US         ;4*Nt2c
+        djnz r7,DELAY_Nx60US    ;N*t2c, with previous we have 5Nt2c=N*60usec
         ret                     ;t2c
 
 ;-----------------------------
-;1500us delay
+;52.5us delay
 ;-----------------------------
-DELAY_1.5MS:
-        mov r6,#197d            ;delay time is t=t2c(3+x),x=197, t=1500us
+DELAY_52US:
+        mov r6,#4               ;delay time is t=t2c(3+x),x=4, t=52.5us
                                 ;see Stashin-Urusov 1990, p.142
-                                ;for 1ms set value 130: t=997.5us
+                                ;for 1ms set value 130: t=997.5us;
+                                ;for 1.5ms set value 197
 DELOOP: djnz r6,DELOOP
         ret
 
