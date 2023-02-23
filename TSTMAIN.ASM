@@ -97,9 +97,9 @@ COPLOOP:mov a,r3
                                 ;will be p2 = p1
 STOP:
 IF NMOS = 1
-       jmp stop
+        jmp stop
 ELSE
-       DB 01h                   ;halt
+        DB 01h                  ;halt
 ENDIF
 
 
@@ -107,7 +107,10 @@ INCLUDE "BINBCD.ASM"
 INCLUDE "LCDSFT.ASM"
 
 ;------------------strings for output
-STRING1:        DB      'Køo øaº '      ;cyrillic 'Kto tam ' in LCD encoding
-STRING2:        DB      '¥a≥∫aeø?'      ;cyrillic 'gavkaet?' in LCD encoding
-STRING3:        DB      '®y∫®y∫√¿'      ;cyrillic 'PukPukich' in LCD encoding
+STRING1:                        ;cyrillic 'Kto tam ' in LCD encoding
+        DB      04Bh, 0BFh, 06Fh, 020H, 0BFh, 061h, 0BCh, 020h
+STRING2:                        ;cyrillic 'gavkaet?' in LCD encoding
+        DB      0B4h, 061h, 0B3h, 0BAh, 061h, 065h, 0BFh, 03Fh
+STRING3:                        ;cyrillic 'PukPukich' in LCD encoding
+        DB      0A8h, 079h, 0BAh, 0A8h, 079h, 0BAh, 0C3h, 0C0h
 
