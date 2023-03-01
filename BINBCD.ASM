@@ -30,7 +30,7 @@ BCDFIN: mov a,#30h              ;exit from loop point, CARRY is clear!
         mov @r1,a
         ret
 
-
+$NOLIST
 ;------------------------------------------------------
 ;version1 - like Microchip PIC AN526 BIN8BCD.asm
 
@@ -88,7 +88,6 @@ BCDFIN: mov a,#30h              ;exit from loop point, CARRY is clear!
 ;;     @22h - BCD LSB
 ;;     @23h - degree symbol (or 1/2 in future 9-bit resolution)
 ;;     @24h - in future 9-bit resolution here will be degree symbol
-;
 ;MSBCD   equ     21h
 ;
 ;;        mov a,#53d              ;value to convert
@@ -108,3 +107,4 @@ BCDFIN: mov a,#30h              ;exit from loop point, CARRY is clear!
 ;        ret
 
 ;DB      NEG10
+$LIST

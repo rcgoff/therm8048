@@ -24,15 +24,15 @@
 ;----------------
 LCDINIT:
         mov r7,#250d
-        call DELAY_Nx60US       ;wait 15ms for LCD initialisation
+        call Nx60US             ;wait 15ms for LCD initialisation
         clr a
         call SFTREG             ;clear shift register
 
-        mov a,#010 0011 0b      ;init word for LCD 1/3
+        mov a,#01000110b        ;init word for LCD 1/3
         mov r0,a                ;back it up
         call SFTREG
         mov r7,#84d
-        call DELAY_Nx60US       ;wait ~5ms
+        call Nx60US             ;wait ~5ms
         clr a
         call SFTREG
 
@@ -41,7 +41,7 @@ LCDINIT:
         mov a,r0
         call STDOUT             ;init word for LCD 3/3
 
-        mov a,#010 0010 0b
+        mov a,#01000100b
         call STDOUT             ;set 4-bit mode 1/2
 
         mov r0,#INITSEQ
@@ -113,8 +113,8 @@ SENDD:  mov r3,a
 
 SFTPREP:rl a
         jf0 COMSEND             ;f0=1? yes - this is command sending
-        orl a,#0010 0000b       ;no - set bit 5 - data sending
-COMSEND:orl a,#0100 0000b       ;bit 6 is necessary to shift register
+        orl a,#00100000b        ;no - set bit 5 - data sending
+COMSEND:orl a,#01000000b        ;bit 6 is necessary to shift register
                                 ;and now, in natural way, go to STDOUT...
 ;------------------------------------
 ;Out byte from Acc
@@ -125,7 +125,7 @@ COMSEND:orl a,#0100 0000b       ;bit 6 is necessary to shift register
 ;------------------------------------
 STDOUT: call SFTREG
         mov r7,#25d
-        call DELAY_Nx60US
+        call Nx60US
         clr a
         call SFTREG
         ret
@@ -139,9 +139,9 @@ SFTREG: mov r2,#8               ;amount of shifts
 SFTLOOP:rl a                    ;shift right (and current MSB to LSB)
         movd p4,a               ;out LSB to shift register
         djnz r2,SFTLOOP
-IF P8748 = 1
+IF P8748 EQU 1
         orl p2,#1h              ;force DI to 1
-        anl p2,#1111 1110b      ;force DI to 0 - writing to LCD controller
+        anl p2,#11111110b       ;force DI to 0 - writing to LCD controller
 ELSE
         movp3 a,@a              ;DI (P2.0) 0->1->0 switching - wr to LCD
 ENDIF
@@ -152,16 +152,15 @@ ENDIF
 ;----------------------------
 ;exact delay time is 2t2c+5Nt2c=60N+15 usec,
 ;or, if we count mov r7,#val too, 60N+22.5 usec.
-DELAY_Nx60US:                   ;t2c to call
-        call DELAY_52US         ;4*Nt2c
-        djnz r7,DELAY_Nx60US    ;N*t2c, with previous we have 5Nt2c=N*60usec
+Nx60US:                         ;t2c to call
+        call DL52US             ;4*Nt2c
+        djnz r7,Nx60US          ;N*t2c, with previous we have 5Nt2c=N*60usec
         ret                     ;t2c
 
 ;-----------------------------
 ;52.5us delay
 ;-----------------------------
-DELAY_52US:
-        mov r6,#4               ;delay time is t=t2c(3+x),x=4, t=52.5us
+DL52US: mov r6,#4               ;delay time is t=t2c(3+x),x=4, t=52.5us
                                 ;see Stashin-Urusov 1990, p.142
                                 ;for 1ms set value 130: t=997.5us;
                                 ;for 1.5ms set value 197
@@ -175,8 +174,4 @@ INITSEQ:        DB      28h     ;4bit mode
                 DB      01h     ;disp clr
                 DB      0Ch     ;disp on
                 DB      06h     ;incr without shift mode
-
-;-----------------
-       END
-;-----------------
 
