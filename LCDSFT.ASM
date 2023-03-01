@@ -22,7 +22,7 @@
 ;----------------
 ;LCD initialisation
 ;----------------
-LCDINIT:
+INITLCD:
         mov r7,#250d
         call Nx60US             ;wait 15ms for LCD initialisation
         clr a
