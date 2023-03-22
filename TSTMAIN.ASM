@@ -33,15 +33,24 @@ ENDIF
 
         call INITLCD
 SENLOP: call INIT1W
-        mov r0,#PRESTR
-        jc SENPRE
-        mov r0,#NOSTR           ;not necessary if NOSTR is next to INITSEQ
+;        mov r0,#PRESTR
+        jnc NOSENS
+	mov a,#33h              ;read ROM command
+	mov r1,#8
+	call OUBT1W
+CRCLOP:	call INBT1W
+	call SENDD
+	djnz r1,CRCLOP
 SENPRE: mov a,#80h
         call SENDI              ;set DDRAM to 0h (line1)
-        call ARROUT             ;print SENPRE or NOSTR (8 bytes)
         jmp SENLOP
         mov a,#11000000b
         call SENDI              ;set DDRAM to 40h (line2)
+
+
+NOSENS: mov r0,#NOSTR           ;not necessary if NOSTR is next to INITSEQ
+	call ARROUT             ;print SENPRE or NOSTR (8 bytes)
+	jmp SENPRE
 
 
 ;--------------------
@@ -49,8 +58,8 @@ SENPRE: mov a,#80h
 ;--------------------
         mov a,#76d
         outl p1,a
-        call BINASCI           ;now @21H and 22H of RAM is BCD of 76d
-        mov r0,#MSBCD
+;        call BINASCI           ;now @21H and 22H of RAM is BCD of 76d
+;        mov r0,#MSBCD
         mov r5,#01h
         mov r4,#2
         call ARRLOOP           ;print this 2 digits
@@ -70,7 +79,7 @@ ENDIF
 
 
 ;blank lines between INCLUDEs are mandatory for INTEL ASM48
-$INCLUDE (BINBCD.ASM)
+;$INCLUDE (BINBCD.ASM)
 
 $INCLUDE (LCDSFT.ASM)
 
