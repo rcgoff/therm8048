@@ -32,11 +32,22 @@ NMOS    SET     1
 ENDIF
 
         call INITLCD
-SENLOP: call INIT1W
+SENLOP: mov r1,#8                ;8bytes to read
+        call INIT1W
 ;        mov r0,#PRESTR
         jnc NOSENS
-	mov a,#33h              ;read ROM command
-	mov r1,#8
+	mov a,#0CCh              ;skip ROM command
+	call OUBT1W
+	mov a,#044h              ;convert T
+	call OUBT1W
+	mov r4,#49d
+CNVDLP:	mov r7,#00d
+	call Nx60US              ;15.3ms inner delay
+	djnz r4,CNVDLP           ;752ms total delay
+        call INIT1W
+	mov a,#0CCh              ;skip ROM command
+	call OUBT1W
+	mov a,#0BEh              ;read scratchpad
 	call OUBT1W
 CRCLOP:	call INBT1W
 	call SENDD
@@ -44,8 +55,8 @@ CRCLOP:	call INBT1W
 SENPRE: mov a,#80h
         call SENDI              ;set DDRAM to 0h (line1)
         jmp SENLOP
-        mov a,#11000000b
-        call SENDI              ;set DDRAM to 40h (line2)
+;        mov a,#11000000b
+;        call SENDI              ;set DDRAM to 40h (line2)
 
 
 NOSENS: mov r0,#NOSTR           ;not necessary if NOSTR is next to INITSEQ
@@ -65,11 +76,11 @@ NOSENS: mov r0,#NOSTR           ;not necessary if NOSTR is next to INITSEQ
         call ARRLOOP           ;print this 2 digits
 
 ;MEMORY
-MEMADR  equ     23h             ;starting RAM addr
-        mov r0,#MEMADR
-        mov r5,#01h             ;RAM-sending
-        mov r4,#6
-        call ARRLOOP            ;print the 1st 6 symbols of PRESTR copied to RAM
+;MEMADR  equ     23h             ;starting RAM addr
+;        mov r0,#MEMADR
+;        mov r5,#01h             ;RAM-sending
+;        mov r4,#6
+;        call ARRLOOP            ;print the 1st 6 symbols of PRESTR copied to RAM
 
 STP: IF NMOS EQU 1
         jmp STP
@@ -87,7 +98,7 @@ $INCLUDE (1WIRE.ASM)
 
 ;------------------strings for output
 NOSTR:  DB      'NoSensor'
-PRESTR: DB      'Present!'
+;PRESTR: DB      'Present!'
 ;-----------------
         END
 ;-----------------
