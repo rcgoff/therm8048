@@ -31,7 +31,7 @@ IF P8748 EQU 1
 NMOS    SET     1
 ENDIF
 
-        call INITLCD
+	call INITLCD
 SENLOP: call INIT1W
         jnc NOSENS
 	mov a,#0CCh              ;skip ROM command
@@ -60,53 +60,62 @@ SFTRM:  rrc a                    ;shift MSB
 	djnz r7,SFTRM
 ;now acc (bits 7-0): 2^-2, 2^-3, 2^-4, undef, S,S,S,S; R2:=S,therm(2^6..2^0); CY=2^-1
 	rrc a                    ;acc:=2^-1 2^-2 2^-3 2^-4 undef S S S, CY=S
-	xch a,r2                 ;acc:=therm
-	cpl a
-	jb7 PLUS                 ;check sign
-        inc a
-        ;here should be some for fractional negative therm
-	jmp PRNTRM
-PLUS:	cpl a
-;BINBCD 
-PRNTRM: call BINASCI             ;now @21H and 22H of RAM is BCD of temperature
-	mov a,r2
+;sign processing
+	mov r4,a                 ;save sign&fracs for later
         anl a,#10b               ;acc=0 if "+" or 2 if "-"
 	mov r3,#'+'
 	add a,r3                 ;now a:=ASCII "+" or "-", since ASCII "-":= ASCII "+" + 2
         mov r0,#MSBCD-1
 	mov @r0,a                ;store sign in RAM array to display
-        mov r5,#01h
-        mov r4,#3
-        call ARRLOOP             ;print sign and 2 digits of temperature
-SENPRE: mov a,#80h
+	mov a,r4                 ;restore sign&fracs
+	xch a,r2                 ;acc:=therm,r2:=sign&fracs
+	cpl a
+	jb7 PLUS                 ;check sign
+        inc a
+;process fractional negative therm
+	mov r3,a                 ;save temp for later
+	mov a,r2                 ;frac byte
+	cpl a
+	add a,#10h               ;convert
+	mov r2,a                 ;save frac
+	mov a,r3                 ;restore temp
+	jmp PRNTRM
+PLUS:	cpl a
+;BINBCD 
+PRNTRM: call BINASCI             ;now @21H and 22H of RAM is BCD of temperature
+;fractures processing
+	mov a,r2
+	swap a
+	rr a
+	rr a                     ;acc:=0 0 undef S S 2^-1 2^-2
+	anl a,#3
+	jb1 FRMLCD
+	jz NOFRAC
+	dec a                    ;here we if 0001 (1/4), LCD code of 1/4 is F0h, so, correct
+FRMLCD:	orl a,#0F0h              ;form LCD code for fractures
+        mov r0,#MSBCD+2
+	mov @r0,a                ;store fracture
+	mov r4,#4
+	jmp PRNTMP
+;output
+NOFRAC: mov r4,#3
+PRNTMP: mov a,#1
+	call SENDI               ;clear display
+	mov r0,#MSBCD-1
+	mov r5,#01h
+        call ARRLOOP             ;print sign,2 digits of temperature and fracture (if present)
+
+SENPRE:	mov a,#80h
         call SENDI               ;set DDRAM to 0h (line1)
         jmp SENLOP
 ;        mov a,#11000000b
 ;        call SENDI              ;set DDRAM to 40h (line2)
 
 
-NOSENS: mov r0,#NOSTR MOD 100h  ;not necessary if NOSTR is next to INITSEQ
+NOSENS: mov r5,#0
+	mov r0,#NOSTR MOD 100h  ;not necessary if NOSTR is next to INITSEQ
 	call ARROUT             ;print SENPRE or NOSTR (8 bytes)
 	jmp SENPRE
-
-
-;--------------------
-;BINBCD test in LINE2
-;--------------------
-;        mov a,#76d
-;        outl p1,a
-;        call BINASCI           ;now @21H and 22H of RAM is BCD of 76d
-;        mov r0,#MSBCD
-;        mov r5,#01h
-;        mov r4,#2
-;        call ARRLOOP           ;print this 2 digits
-
-;MEMORY
-;MEMADR  equ     23h             ;starting RAM addr
-;        mov r0,#MEMADR
-;        mov r5,#01h             ;RAM-sending
-;        mov r4,#6
-;        call ARRLOOP            ;print the 1st 6 symbols of PRESTR copied to RAM
 
 STP: IF NMOS EQU 1
         jmp STP
@@ -124,7 +133,6 @@ $INCLUDE (1WIRE.ASM)
 
 ;------------------strings for output
 NOSTR:  DB      'NoSensor'
-;PRESTR: DB      'Present!'
 ;-----------------
         END
 ;-----------------
