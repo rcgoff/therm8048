@@ -71,14 +71,14 @@ SFTRM:  rrc a                    ;shift MSB
 	xch a,r2                 ;acc:=therm,r2:=sign&fracs
 	cpl a
 	jb7 PLUS                 ;check sign
-        inc a
-;process fractional negative therm
+;process negative themperature
 	mov r3,a                 ;save temp for later
 	mov a,r2                 ;frac byte
 	cpl a
-	add a,#10h               ;convert
+	add a,#10h               ;convert frac byte, CY:=if need to incr integer part
 	mov r2,a                 ;save frac
 	mov a,r3                 ;restore temp
+	addc a,#0                ;+1 to temp depending on carry from fracture
 	jmp PRNTRM
 PLUS:	cpl a
 ;BINBCD 
