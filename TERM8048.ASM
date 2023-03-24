@@ -33,7 +33,6 @@ ENDIF
 
         call INITLCD
 SENLOP: call INIT1W
-;        mov r0,#PRESTR
         jnc NOSENS
 	mov a,#0CCh              ;skip ROM command
 	call OUBT1W
@@ -60,7 +59,7 @@ SFTRM:  rrc a                    ;shift MSB
 	xch a,r2                 ;acc:=shifted MSB, R2:=shifted LSB,CY:=ex-MSB.bit0 
 	djnz r7,SFTRM
 ;now acc (bits 7-0): 2^-2, 2^-3, 2^-4, undef, S,S,S,S; R2:=S,therm(2^6..2^0); CY=2^-1
-	rrc a                    ;acc:=2^-1 2^-2 2^-3 2^-4 undef S S S
+	rrc a                    ;acc:=2^-1 2^-2 2^-3 2^-4 undef S S S, CY=S
 	xch a,r2                 ;acc:=therm
 	cpl a
 	jb7 PLUS                 ;check sign
@@ -69,13 +68,18 @@ SFTRM:  rrc a                    ;shift MSB
 	jmp PRNTRM
 PLUS:	cpl a
 ;BINBCD 
-PRNTRM: call BINASCI           ;now @21H and 22H of RAM is BCD of temperature
-        mov r0,#MSBCD
+PRNTRM: call BINASCI             ;now @21H and 22H of RAM is BCD of temperature
+	mov a,r2
+        anl a,#10b               ;acc=0 if "+" or 2 if "-"
+	mov r3,#'+'
+	add a,r3                 ;now a:=ASCII "+" or "-", since ASCII "-":= ASCII "+" + 2
+        mov r0,#MSBCD-1
+	mov @r0,a                ;store sign in RAM array to display
         mov r5,#01h
-        mov r4,#2
-        call ARRLOOP           ;print this 2 digits
+        mov r4,#3
+        call ARRLOOP             ;print sign and 2 digits of temperature
 SENPRE: mov a,#80h
-        call SENDI              ;set DDRAM to 0h (line1)
+        call SENDI               ;set DDRAM to 0h (line1)
         jmp SENLOP
 ;        mov a,#11000000b
 ;        call SENDI              ;set DDRAM to 40h (line2)
