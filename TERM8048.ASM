@@ -32,8 +32,7 @@ NMOS    SET     1
 ENDIF
 
         call INITLCD
-SENLOP: mov r1,#8                ;8bytes to read
-        call INIT1W
+SENLOP: call INIT1W
 ;        mov r0,#PRESTR
         jnc NOSENS
 	mov a,#0CCh              ;skip ROM command
@@ -49,9 +48,32 @@ CNVDLP:	mov r7,#00d
 	call OUBT1W
 	mov a,#0BEh              ;read scratchpad
 	call OUBT1W
-CRCLOP:	call INBT1W
-	call SENDD
-	djnz r1,CRCLOP
+	call INBT1W              ;read therm. LSB
+	mov r2,a
+	call INBT1W              ;read therm. MSB
+
+;acc:=MSB,R2:=LSB. Let's shift this pair 4 times
+	mov r7,#4                ;4 times
+SFTRM:  rrc a                    ;shift MSB
+	xch a,r2                 ;acc:=LSB to shift, R2:=shifted MSB	
+	rrc a                    ;shift MSB
+	xch a,r2                 ;acc:=shifted MSB, R2:=shifted LSB,CY:=ex-MSB.bit0 
+	djnz r7,SFTRM
+;now acc (bits 7-0): 2^-2, 2^-3, 2^-4, undef, S,S,S,S; R2:=S,therm(2^6..2^0); CY=2^-1
+	rrc a                    ;acc:=2^-1 2^-2 2^-3 2^-4 undef S S S
+	xch a,r2                 ;acc:=therm
+	cpl a
+	jb7 PLUS                 ;check sign
+        inc a
+        ;here should be some for fractional negative therm
+	jmp PRNTRM
+PLUS:	cpl a
+;BINBCD 
+PRNTRM: call BINASCI           ;now @21H and 22H of RAM is BCD of temperature
+        mov r0,#MSBCD
+        mov r5,#01h
+        mov r4,#2
+        call ARRLOOP           ;print this 2 digits
 SENPRE: mov a,#80h
         call SENDI              ;set DDRAM to 0h (line1)
         jmp SENLOP
@@ -59,7 +81,7 @@ SENPRE: mov a,#80h
 ;        call SENDI              ;set DDRAM to 40h (line2)
 
 
-NOSENS: mov r0,#NOSTR           ;not necessary if NOSTR is next to INITSEQ
+NOSENS: mov r0,#NOSTR MOD 100h  ;not necessary if NOSTR is next to INITSEQ
 	call ARROUT             ;print SENPRE or NOSTR (8 bytes)
 	jmp SENPRE
 
@@ -67,13 +89,13 @@ NOSENS: mov r0,#NOSTR           ;not necessary if NOSTR is next to INITSEQ
 ;--------------------
 ;BINBCD test in LINE2
 ;--------------------
-        mov a,#76d
-        outl p1,a
+;        mov a,#76d
+;        outl p1,a
 ;        call BINASCI           ;now @21H and 22H of RAM is BCD of 76d
 ;        mov r0,#MSBCD
-        mov r5,#01h
-        mov r4,#2
-        call ARRLOOP           ;print this 2 digits
+;        mov r5,#01h
+;        mov r4,#2
+;        call ARRLOOP           ;print this 2 digits
 
 ;MEMORY
 ;MEMADR  equ     23h             ;starting RAM addr
@@ -88,11 +110,11 @@ ELSE
         DB 01h                  ;halt
 ENDIF
 
-
+org	200h
 ;blank lines between INCLUDEs are mandatory for INTEL ASM48
-;$INCLUDE (BINBCD.ASM)
-
 $INCLUDE (LCDSFT.ASM)
+
+$INCLUDE (BINBCD.ASM)
 
 $INCLUDE (1WIRE.ASM)
 
