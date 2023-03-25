@@ -77,12 +77,13 @@ SFTRM:  rrc a                    ;shift MSB
 	cpl a
 	add a,#10h               ;convert frac byte, CY:=if need to incr integer part
 	mov r2,a                 ;save frac
-	mov a,r3                 ;restore temp
-	addc a,#0                ;+1 to temp depending on carry from fracture
+	clr a
+	addc a,r3                ;+1 to saved temp depending on carry from fracture
 	jmp PRNTRM
 PLUS:	cpl a
 ;BINBCD 
-PRNTRM: call BINASCI             ;now @21H and 22H of RAM is BCD of temperature
+PRNTRM: mov r3,a                 ;save temp for later
+	call BINASCI             ;now @21H and 22H of RAM is BCD of temperature
 ;fractures processing
 	mov a,r2
 	swap a
@@ -99,6 +100,11 @@ FRMLCD:	orl a,#0F0h              ;form LCD code for fractures
 	jmp PRNTMP
 ;output
 NOFRAC: mov r4,#3
+	mov a,r3                 ;restore temp
+	jnz PRNTMP               ;is integer part=0 too?
+	mov r0,#MSBCD-1
+	mov a,#' '
+	mov @r0,a                ;eliminate sign if both int and frac parts are 0
 PRNTMP: mov a,#1
 	call SENDI               ;clear display
 	mov r0,#MSBCD-1
