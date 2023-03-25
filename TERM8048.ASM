@@ -16,10 +16,10 @@ $NOPAGING
 ;
 ;
 ;degree symbol in MT-16S2D:
-;.**..
-;*..*.
-;*..*.
-;.**..
+;.**..  =0Ch
+;*..*.  =12h
+;*..*.  =12h
+;.**..  =0Ch
 ;.....
 ;.....
 ;.....
@@ -32,6 +32,7 @@ NMOS    SET     1
 ENDIF
 
 	call INITLCD
+	call DEGPRG
 SENLOP: call INIT1W
         jnc NOSENS
 	mov a,#0CCh              ;skip ROM command
@@ -110,6 +111,8 @@ PRNTMP: mov a,#1
 	mov r0,#MSBCD-1
 	mov r5,#01h
         call ARRLOOP             ;print sign,2 digits of temperature and fracture (if present)
+	clr a
+	call SENDD               ;print degree symbol
 
 SENPRE:	mov a,#80h
         call SENDI               ;set DDRAM to 0h (line1)
@@ -122,6 +125,15 @@ NOSENS: mov r5,#0
 	mov r0,#NOSTR MOD 100h  ;not necessary if NOSTR is next to INITSEQ
 	call ARROUT             ;print SENPRE or NOSTR (8 bytes)
 	jmp SENPRE
+
+;program degree character
+DEGPRG: mov a,#40h
+	call SENDI              ;set CGRAM addr:=0
+	mov r0,#DEGCHR MOD 100h ;degree symbol bitmap
+	call ARROUT
+	mov a,#80h
+	call SENDI		;deg DDRAM to 0h (line1)
+	ret
 
 STP: IF NMOS EQU 1
         jmp STP
@@ -139,6 +151,17 @@ $INCLUDE (1WIRE.ASM)
 
 ;------------------strings for output
 NOSTR:  DB      'NoSensor'
+
+;degree symbol bitmap
+DEGCHR: DB      0Ch     ;.**..
+        DB      12h     ;*..*.
+        DB      12h     ;*..*.
+        DB      0Ch     ;.**..
+        DB      00h     ;.....
+        DB      00h     ;.....
+        DB      00h     ;.....
+        DB      00h     ;.....
+
 ;-----------------
         END
 ;-----------------
