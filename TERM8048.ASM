@@ -1,9 +1,13 @@
 $NOPAGING
 ;8048 thermometer
-;test main file
+;main file
 ;uses BINBCD, LCDSFT, 1WIRE
 ;unfortunately 8048 assemblers I use don't support linking
 ;so, only including
+
+;R5 is a user-flag register
+;       bit 0: ROM (0) / RAM (1) reading for ARROUT, default 0
+;       bit 1: 2-digit (0) / 3-digit (1) temperature received
 
 
 ;29.04.2019 - notes for future programming:
@@ -84,7 +88,7 @@ SFTRM:  rrc a                    ;shift MSB
 PLUS:	cpl a
 ;BINBCD 
 PRNTRM: mov r3,a                 ;save temp for later
-	call BINASCI             ;now @21H and 22H of RAM is BCD of temperature
+	call BINASCI             ;now @21H and 22H of RAM is BCD of temperature; R5.1=1 means 3-digit (@23H too)
 ;fractures processing
 	mov a,r2
 	swap a
@@ -95,12 +99,16 @@ PRNTRM: mov r3,a                 ;save temp for later
 	jz NOFRAC
 	dec a                    ;here we if 0001 (1/4), LCD code of 1/4 is F0h, so, correct
 FRMLCD:	orl a,#0F0h              ;form LCD code for fractures
-        mov r0,#MSBCD+2
+        mov r0,#MSBCD+3
+	xch a,r5
+	jb1 LESS99
+	dec r0
+LESS99: xch a,r5
 	mov @r0,a                ;store fracture
-	mov r4,#4
+	mov r4,#5                ;worst-case length with fractures 
 	jmp PRNTMP
 ;output
-NOFRAC: mov r4,#3
+NOFRAC: mov r4,#4
 	mov a,r3                 ;restore temp
 	jnz PRNTMP               ;is integer part=0 too?
 	mov r0,#MSBCD-1
@@ -109,8 +117,12 @@ NOFRAC: mov r4,#3
 PRNTMP: mov a,#1
 	call SENDI               ;clear display
 	mov r0,#MSBCD-1
-	mov r5,#01h
-        call ARRLOOP             ;print sign,2 digits of temperature and fracture (if present)
+	xch a,r5
+	jb1 TREDGT
+	dec r4
+TREDGT:	orl a,#1
+	xch a,r5
+        call ARRLOOP             ;print sign, 2 or 3 digits of temperature and fracture (if present)
 	clr a
 	call SENDD               ;print degree symbol
 
