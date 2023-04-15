@@ -1,36 +1,73 @@
-;BINBCD
-;L.Yadrennikov 28.04.2019
-
 ;---------------
 ;BINASCI
 ;---------------
 ;Conversion of 7-bit unsigned binary in Acc 
-;to BCD ASCII codes in MSBCD and MSBCD+1.
-;      based on BINBCDv3 (see older versions below)
+;to BCD ASCII codes in MSBCD and MSBCD+1,
+;and if >99 - in MSBCD+2 too (3-digit).
+;If 3-digit, bit 1 @R5 set to 1
+
+;L.Yadrennikov 03.2023
+
 MSBCD   equ     21h
 
-;"2" complement to 10d is (256-10)=246d=1111.0110=F6h
-NEG10   equ     256d-10d
-
-;        mov a,#53d              ;value to convert
 BINASCI:
-        mov r0,#MSBCD           ;@r0 for tens
-        mov r1,#MSBCD+1         ;@r1 for ones
-        mov @r0,#30h            ;ASCII code "0"
-        mov @r1,a
-GTENTH: mov a,#NEG10
-        add a,@r1
-        jnc BCDFIN
-        inc @r0
-        mov @r1,a
-        jmp GTENTH              ;16 bytes
-;now MSB-ASCI is in @R0, LSB-BCD is in @R1.
-BCDFIN: mov a,#30h              ;exit from loop point, CARRY is clear!
-        add a,@r1
-        mov @r1,a
-        ret
+	clr c
+	xch a,r5
+	anl a,#11111101b         ;clear 3-digit flag
+	xch a,r5
+	mov r0,#MSBCD+1
+	jz BCDZER                ;zeros are incorrectly processed by DJNZ, so, skip
+;convert to packed BCD in Acc
+	mov r7,a
+	clr a
+BCDLOP:	inc a
+	da a
+	jc OVER99                ;DAA returns carry if operand was 9Ah, converted to 00 + CY
+BCDLO1:	djnz r7,BCDLOP
+;unpack and form ASCII
+BCDZER:	mov @r0,#'0' 
+	xchd a,@r0               ;LSD (ones)
+	swap a
+	dec r0
+	mov @r0,#'0'
+	xchd a,@r0               ;tens
+	ret
+
+OVER99: inc r0                   ;change ones' address if >99
+	mov r1,#MSBCD
+	mov @r1,#'1'             ;hundreds
+	xch a,r5
+	orl a,#10b               ;set 3-digit flag
+	xch a,r5
+	clr c                    ;to prevent incorrect DAA work at the rest of loop
+	jmp BCDLO1
+
 
 $NOLIST
+;----------------------------obsolete	
+;L.Yadrennikov 28.04.2019
+
+;;"2" complement to 10d is (256-10)=246d=1111.0110=F6h
+;NEG10   equ     256d-10d
+
+;      based on BINBCDv3 (see older versions below)
+;BINASCI:
+;        mov r0,#MSBCD           ;@r0 for tens
+;        mov r1,#MSBCD+1         ;@r1 for ones
+;        mov @r0,#30h            ;ASCII code "0"
+;        mov @r1,a
+;GTENTH: mov a,#NEG10
+;        add a,@r1
+;        jnc BCDFIN
+;        inc @r0
+;        mov @r1,a
+;        jmp GTENTH              ;16 bytes
+;now MSB-ASCI is in @R0, LSB-BCD is in @R1.
+;BCDFIN: mov a,#30h              ;exit from loop point, CARRY is clear!
+;        add a,@r1
+;        mov @r1,a
+;        ret
+
 ;------------------------------------------------------
 ;version1 - like Microchip PIC AN526 BIN8BCD.asm
 
