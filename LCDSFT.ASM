@@ -3,7 +3,7 @@
 ;4MHz - every single-byte command takes 15/4=3.75usec, double-byte 7.5usec
 
 ;pin 25 (extender strobe) - CLK of sft.reg
-;pin 21 (P2.0) - DATA of sft.reg
+;pin 22 (P2.1) - DATA of sft.reg
 ;shifting by rising edge of CLK (0->1)
 ;       this is compartible with data output by MOVD P(4..7) command
 ;strobe to LCD controller (/E) is by falling edge of DI (1->0)
@@ -132,41 +132,21 @@ STDOUT: call SFTREG
 
 ;------------------------------------
 ;Out byte from Acc
-;to shift register on PROG and P2.0
+;to shift register on PROG and P2.1
 ;(back-end)
 ;------------------------------------
-SFTREG: mov r2,#8               ;amount of shifts
-SFTLOOP:rl a                    ;shift right (and current MSB to LSB)
-        movd p4,a               ;out LSB to shift register
+SFTREG: rl a                    ;move MSB to LSB
+        mov r2,#8               ;amount of shifts
+SFTLOOP:rl a                    ;place next data bit for output to bit1 position
+        movd p4,a               ;out bit1 to shift register
         djnz r2,SFTLOOP
 IF P8748 EQU 1
-        orl p2,#1h              ;force DI to 1
-        anl p2,#11111110b       ;force DI to 0 - writing to LCD controller
+        orl p2,#00000010b       ;force DI to 1
+        anl p2,#11111101b       ;force DI to 0 - writing to LCD controller
 ELSE
-        movp3 a,@a              ;DI (P2.0) 0->1->0 switching - wr to LCD
+        movp3 a,@a              ;DI (P2.1) 0->1->0 switching - wr to LCD
 ENDIF
         ret
-
-;----------------------------
-;(Nx60) us delay, N stored in r7
-;----------------------------
-;exact delay time is 2t2c+5Nt2c=60N+15 usec,
-;or, if we count mov r7,#val too, 60N+22.5 usec.
-Nx60US:                         ;t2c to call
-        call DL52US             ;4*Nt2c
-        djnz r7,Nx60US          ;N*t2c, with previous we have 5Nt2c=N*60usec
-        ret                     ;t2c
-
-;-----------------------------
-;52.5us delay
-;-----------------------------
-DL52US: mov r6,#4               ;delay time is t=t2c(3+x),x=4, t=52.5us
-                                ;see Stashin-Urusov 1990, p.142
-                                ;for 1ms set value 130: t=997.5us;
-                                ;for 1.5ms set value 197
-DELOOP: djnz r6,DELOOP
-        ret
-
 
 ;initialising sequence for display
 INITSEQ:        DB      28h     ;4bit mode

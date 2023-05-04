@@ -14,9 +14,6 @@ $NOPAGING
 ;'+' has ASCII code 2Bh
 ;'-' has ASCII code 2Dh, i.e. '-':= '+' + 2
 ;'1/2' has code F2h
-;a-la degree in LC display (another encoding): ASCII code B2h (by horowitz-hill)
-;degree in An6866 doc: 99h (S03 encoding, page 1) - very close to truth because there's no other cyrillic
-;tables with such letters order. Also: 93h EFh
 ;
 ;
 ;degree symbol in MT-16S2D:
@@ -147,19 +144,16 @@ DEGPRG: mov a,#40h
 	call SENDI		;deg DDRAM to 0h (line1)
 	ret
 
-STP: IF NMOS EQU 1
-        jmp STP
-ELSE
-        DB 01h                  ;halt
-ENDIF
-
-org	200h
 ;blank lines between INCLUDEs are mandatory for INTEL ASM48
-$INCLUDE (LCDSFT.ASM)
+$INCLUDE (1WIRE.ASM)
+
+$INCLUDE (DELAY.ASM)
+
+org 	100h
 
 $INCLUDE (BINBCD.ASM)
 
-$INCLUDE (1WIRE.ASM)
+$INCLUDE (LCDSFT.ASM)
 
 ;------------------strings for output
 NOSTR:  DB      'NoSensor'
