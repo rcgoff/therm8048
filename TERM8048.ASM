@@ -38,7 +38,16 @@ SENLOP: call INIT1W
         jnc NOSENS
 	mov a,#0CCh              ;skip ROM command
 	call OUBT1W
-	mov a,#044h              ;convert T
+	mov a,#04Eh              ;write scratchpad command
+	call OUBT1W
+	mov a,#03Fh              ;0 R1=0 R0=1 1 1111 - 10-bit thermo resolution (2 bits after decimal point)
+	call OUBT1W              ;write as Th (not used anyway)
+	call OUBT1W              ;write as Tl (not used anyway)
+	call OUBT1W              ;write as configutation register finally
+        call INIT1W
+	mov a,#0CCh              ;skip ROM command
+	call OUBT1W
+	mov a,#044h              ;convert T command
 	call OUBT1W
 CNVDLY:	call INBT1W
 	cpl a
