@@ -40,10 +40,9 @@ SENLOP: call INIT1W
 	call OUBT1W
 	mov a,#044h              ;convert T
 	call OUBT1W
-	mov r4,#49d
-CNVDLP:	mov r7,#00d
-	call Nx60US              ;15.3ms inner delay
-	djnz r4,CNVDLP           ;752ms total delay
+CNVDLY:	call INBT1W
+	cpl a
+	jb7 CNVDLY               ;when conversion is finished, DS18B20 outputs 1
         call INIT1W
 	mov a,#0CCh              ;skip ROM command
 	call OUBT1W
