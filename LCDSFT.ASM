@@ -46,7 +46,7 @@ INITLCD:
 
         mov r0,#INITSEQ MOD 100h
         mov r4,#5               ;init sequence length
-        cpl f1
+        cpl f0
         call ARRLOOP            ;array-based initialisation w/variable
                                 ;..length
         ret
@@ -56,12 +56,12 @@ INITLCD:
 ;--------------------
 ;Before call, in R0 should be starting (base) address of array
 ;Default length is 8, if no, put length in R4 and call ARRLOOP
-;F1 shows if command (=1) or data (=0,default) array
+;F0 shows if command (=1) or data (=0,default) array
 ;uses r5 bit 0 (ROM (0)/RAM (1) reading
 ;uses r4 (array count)
 ;uses r0 (array pointer)
 ;iterating by r4 downwards
-;on exit, we will have in r5 "final addr"+1 - this is useful
+;on exit, we will have in r0 "final addr"+1 - this is useful
 
 ARRLEN  equ     8h              ;default array length
 ARROUT: mov r4,#ARRLEN
@@ -71,6 +71,8 @@ ARRLOOP:                        ;entry when ARRLEN is other (can Vary)
 ;and index should be in a, note that 1st index=st.addr
         mov a,r5
         jb0 RAMRD
+        orl a,#00000100b        ;set array call flag
+	mov r5,a
         mov a,r0                ;ROM reading @r0
         movp a,@a
         jmp RDCOM               ;to ReaD COMmon part
@@ -78,10 +80,14 @@ RAMRD:  mov a,@r0               ;RAM reading  @r0
 RDCOM:  jf1 COMMD               ;command or data array?
         call SENDD
         jmp ARRNX               ;ARRay NeXt code
-COMMD:  call SENDI
+COMMD:  call SENDD ;call SENDI
 ARRNX:  inc r0                  ;next index
         djnz r4,ARRLOOP
-        clr f1                  ;restore default (data) array type
+        clr f0                  ;restore default (data) array type
+        clr f1
+        xch a,r5
+        anl a,#11111011b        ;clear array call flag
+        xch a,r5
         ret
 
 ;----------------
@@ -95,8 +101,10 @@ SENDD:  mov r3,a
         mov a,r3
         anl a,#0Fh              ;lower nibble
         call SFTPREP            ;out to LCD
-        clr f0                  ;restore default flag value
-        ret
+        mov a,r5                ;was it call from ARRLOOP?
+        jb2 SENDEX              ;jump if yes
+        clr f0                  ;if no, restore default CMD/DATA flag value
+SENDEX: ret
 
 ;---------------------------------
 ;output acc's lower nibble to LCD
