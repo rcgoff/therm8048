@@ -84,8 +84,8 @@ SENDEX: ret
 
 SFTPREP:rl a
         jf0 COMSEND             ;f0=1? yes - this is command sending
-        orl a,#00100000b        ;no - set bit 5 - data sending
-COMSEND:orl a,#01000000b        ;bit 6 is necessary to shift register
+        abitst 5                ;no - set bit 5 - data sending
+COMSEND:abitst 6                ;bit 6 is necessary to shift register
                                 ;and now, in natural way, go to STDOUT...
 ;------------------------------------
 ;Out byte from Acc
@@ -112,8 +112,8 @@ SFTLOOP:rl a                    ;place next data bit for output to bit1 position
         movd p4,a               ;out bit1 to shift register
         djnz r2,SFTLOOP
 IF P8748 EQU 1
-        orl p2,#00000010b       ;force DI to 1
-        anl p2,#11111101b       ;force DI to 0 - writing to LCD controller
+        abitst 1                ;force DI to 1
+        abitcl 1                ;force DI to 0 - writing to LCD controller
 ELSE
         movp3 a,@a              ;DI (P2.1) 0->1->0 switching - wr to LCD
 ENDIF

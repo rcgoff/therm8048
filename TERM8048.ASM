@@ -1,4 +1,5 @@
 $NOPAGING
+$MACROFILE
 ;8048 thermometer
 ;main file
 ;uses BINBCD, LCDSFT, 1WIRE
@@ -32,6 +33,26 @@ NMOS    SET     0               ;0 or 1, changes STOP routine if NMOS chip is us
 IF P8748 EQU 1
 NMOS    SET     1
 ENDIF
+
+ABITST	MACRO bit               ;acc bit set
+        orl a,#1 SHL bit
+	endm
+
+ABITCL	MACRO bit               ;acc bit clr
+        anl a,#NOT(1 SHL bit)
+	endm
+
+RBITST	MACRO reg,bit           ;reg bit set
+        xch a,reg
+        abitst bit
+        xch a,reg
+	endm
+
+RBITCL	MACRO reg,bit           ;reg bit clr
+        xch a,reg
+        abitcl bit
+        xch a,reg
+	endm
 
 	call INITLCD
 	call DEGPRG

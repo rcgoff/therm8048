@@ -12,9 +12,7 @@ MSBCD   equ     21h
 
 BINASCI:
 	clr c
-	xch a,r5
-	anl a,#11111101b         ;clear 3-digit flag
-	xch a,r5
+	rbitcl r5,1              ;clear 3-digit flag
 	mov r0,#MSBCD+1
 	jz BCDZER                ;zeros are incorrectly processed by DJNZ, so, skip
 ;convert to packed BCD in Acc
@@ -36,9 +34,7 @@ BCDZER:	mov @r0,#'0'
 OVER99: inc r0                   ;change ones' address if >99
 	mov r1,#MSBCD
 	mov @r1,#'1'             ;hundreds
-	xch a,r5
-	orl a,#10b               ;set 3-digit flag
-	xch a,r5
+	rbitst r5,1              ;set 3-digit flag
 	clr c                    ;to prevent incorrect DAA work at the rest of loop
 	jmp BCDLO1
 

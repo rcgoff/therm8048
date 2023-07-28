@@ -18,7 +18,7 @@ ARRLOOP:                        ;entry when ARRLEN is other (can Vary)
 ;and index should be in a, note that 1st index=st.addr
         mov a,r5
         jb0 RAMRD
-        orl a,#00000100b        ;set array call flag
+        abitst 2                ;set array call flag
 	mov r5,a
         mov a,r0                ;ROM reading @r0
         movp a,@a
@@ -32,9 +32,7 @@ ARRNX:  inc r0                  ;next index
         djnz r4,ARRLOOP
         clr f0                  ;restore default (data) array type
         clr f1                  ;restore default (LCD) output type
-        xch a,r5
-        anl a,#11111011b        ;clear array call flag
-        xch a,r5
+        rbitcl r5,2             ;clear array call flag
         ret
 
 ;initialising sequence for LC display
