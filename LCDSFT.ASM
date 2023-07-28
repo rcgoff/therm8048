@@ -46,7 +46,7 @@ INITLCD:
         mov a,#01000100b
         call STDOUT             ;set 4-bit mode 1/2
 
-        mov r0,#INITSEQ MOD 100h
+        mov r0,#LOW INITSEQ
         mov r4,#5               ;init sequence length
         cpl f0                  ;SENDI loop
         call ARRLOOP            ;array-based initialisation w/variable

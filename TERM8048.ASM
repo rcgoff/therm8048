@@ -136,14 +136,14 @@ SENPRE:	mov a,#80h
 
 
 NOSENS: mov r5,#0
-	mov r0,#NOSTR MOD 100h  ;not necessary if NOSTR is next to INITSEQ
+	mov r0,#LOW NOSTR       ;not necessary if NOSTR is next to INITSEQ
 	call ARROUT             ;print SENPRE or NOSTR (8 bytes)
 	jmp SENPRE
 
 ;program degree character
 DEGPRG: mov a,#40h
 	call SENDI              ;set CGRAM addr:=0
-	mov r0,#DEGCHR MOD 100h ;degree symbol bitmap
+	mov r0,#LOW DEGCHR      ;degree symbol bitmap
 	call ARROUT
 	mov a,#80h
 	call SENDI		;deg DDRAM to 0h (line1)
