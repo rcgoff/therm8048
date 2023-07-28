@@ -8,6 +8,7 @@ $NOPAGING
 ;R5 is a user-flag register
 ;       bit 0: ROM (0) / RAM (1) reading for ARROUT, default 0
 ;       bit 1: 2-digit (0) / 3-digit (1) temperature received
+;       bit 2: 1 if it's array call (for SENDD/SENDI)
 
 
 ;29.04.2019 - notes for future programming:
@@ -36,14 +37,10 @@ ENDIF
 	call DEGPRG
 SENLOP: call INIT1W
         jnc NOSENS
-	mov a,#0CCh              ;skip ROM command
-	call OUBT1W
-	mov a,#04Eh              ;write scratchpad command
-	call OUBT1W
-	mov a,#03Fh              ;0 R1=0 R0=1 1 1111 - 10-bit thermo resolution (2 bits after decimal point)
-	call OUBT1W              ;write as Th (not used anyway)
-	call OUBT1W              ;write as Tl (not used anyway)
-	call OUBT1W              ;write as configutation register finally
+        mov r0,#LOW WRSEQ        ;write to scratchpad command seuqence (set 10-bit resolution)
+        mov r4,#5                ;its length
+        cpl f1
+        call ARRLOOP             ;send sequence to DS18B20
         call INIT1W
 	mov a,#0CCh              ;skip ROM command
 	call OUBT1W

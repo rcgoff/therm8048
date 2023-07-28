@@ -9,11 +9,13 @@
 ;strobe to LCD controller (/E) is by falling edge of DI (1->0)
 ;       this is compartible with extenal program memory reading with A8=1
 
-;F0: data (0) / command (1) send to LCD in SENDI/SENDD
-;F1: data (0) / command (1) string send to LCD in ARROUT
+;F0: data (0) / command (1) send to LCD in ARROUT,SENDI/SENDD
+;F1: LCD (0) / 1Wire (1) string send in ARROUT
 ;       defaults are 0's
 ;R5 is a user-flag register
 ;       bit 0: ROM (0) / RAM (1) reading for ARROUT, default 0
+;       bit 1: 2-digit (0) / 3-digit (1) temperature received
+;       bit 2: 1 if it's array call (for SENDD/SENDI)
 
 ;L.Yadrennikov (13-28).04.2019
 ;based on old routines lcd44780_sftreg.asm for PIC16 (thermometer project)
@@ -46,7 +48,7 @@ INITLCD:
 
         mov r0,#INITSEQ MOD 100h
         mov r4,#5               ;init sequence length
-        cpl f0
+        cpl f0                  ;SENDI loop
         call ARRLOOP            ;array-based initialisation w/variable
                                 ;..length
         ret
@@ -77,14 +79,14 @@ ARRLOOP:                        ;entry when ARRLEN is other (can Vary)
         movp a,@a
         jmp RDCOM               ;to ReaD COMmon part
 RAMRD:  mov a,@r0               ;RAM reading  @r0
-RDCOM:  jf1 COMMD               ;command or data array?
+RDCOM:  jf1 WIRE                ;LCD or 1Wire output?
         call SENDD
         jmp ARRNX               ;ARRay NeXt code
-COMMD:  call SENDD ;call SENDI
+WIRE:   call OUBT1W
 ARRNX:  inc r0                  ;next index
         djnz r4,ARRLOOP
         clr f0                  ;restore default (data) array type
-        clr f1
+        clr f1                  ;restore default (LCD) output type
         xch a,r5
         anl a,#11111011b        ;clear array call flag
         xch a,r5
@@ -163,3 +165,10 @@ INITSEQ:        DB      28h     ;4bit mode
                 DB      0Ch     ;disp on
                 DB      06h     ;incr without shift mode
 
+;write scratchpad sequence for 1-Wire
+WRSEQ:
+                DB      0CCh    ;skip ROM
+                DB      04Eh    ;write scratchpad
+                DB      03Fh    ;Th
+                DB      03Fh    ;Tl
+                DB      03Fh    ;0 R1=0 R0=1 1 1111 - 10-bit thermo resolution (2 bits after decimal point)
