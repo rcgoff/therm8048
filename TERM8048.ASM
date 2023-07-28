@@ -160,6 +160,8 @@ $INCLUDE (BINBCD.ASM)
 
 $INCLUDE (LCDSFT.ASM)
 
+$INCLUDE (ARRAY.ASM)
+
 ;------------------strings for output
 NOSTR:  DB      'NoSensor'
 
