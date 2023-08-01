@@ -46,15 +46,15 @@ PRFAIL: djnz r4,IN1WL           ;continue initializing attempts
 	ret                     ;exit if no chances
 
 ;in 1 byte from 1-wire bus
-;Acc:=R4:=byte from 1Wire
+;Acc:=R3:=byte from 1Wire
 INBT1W:	mov r7,#8
 IN1WLP:	anl P1,#DS18LO          ;out @C2S4, 0.75 us after LOW
         orl P1,#DS18HI          ;out @C2S4, so LOW interval lasts exactly 7.5us; 0.75us after 1 also. 7.5+0.75=8.25us after LOW
 	in a,P1                 ;in  @C2S2, since command start 4.5us, sensing @8.25+4.5=12.75us after LOW
 	rrc a                   ;CY:=bit from 1Wire
-	mov a,r4
+	mov a,r3
 	rrc a                   
-	mov r4,a                ;put the next bit from DS18 (CY) to R4
+	mov r3,a                ;put the next bit from DS18 (CY) to R4
 	call DL52US
 	djnz r7,IN1WLP
 	ret
@@ -69,4 +69,14 @@ OU1WLP: rrc a                   ;CY:=next bit, starting from LSB;
 OUSKHI:	call DL52US
 	orl P1,#DS18HI          ;no impact if out HIGH, end slot if out LOW
 	djnz r7,OU1WLP
-        ret
+        retr                    ;return, restore f0 if call was from RDWR1W
+
+;--------------------
+;Read (f0=1) or write (f0=0,default) 1-wire byte
+;--------------------
+;to call from ARRLOOP
+RDWR1W: cpl f0
+        jf0 OUBT1W
+        call INBT1W
+        mov @r0,a
+        retr                    ;return,restore f0

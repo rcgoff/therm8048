@@ -75,18 +75,23 @@ CNVDLY:	call INBT1W
 	call OUBT1W
 	mov a,#0BEh              ;read scratchpad
 	call OUBT1W
-	call INBT1W              ;read therm. LSB
-	mov r2,a
-	call INBT1W              ;read therm. MSB
+        mov r0,#30h              ;start addr to receive scratchpad
+        cpl f1                   ;set 1-wire array exchange
+        cpl f0                   ;set reading
+        mov r4,#9                ;scratchpad length
+        call ARRLOOP             ;read scratchpad
+        mov r1,#31h
+	mov a,@r1                ;acc:=therm.MSB
+        dec r1                   ;@r1:=therm.LSB
 
-;acc:=MSB,R2:=LSB. Let's shift this pair 4 times
+;acc:=MSB,@R1:=LSB. Let's shift this pair 4 times
 	mov r7,#4                ;4 times
 SFTRM:  rrc a                    ;shift MSB
-	xch a,r2                 ;acc:=LSB to shift, R2:=shifted MSB	
+	xch a,@r1                ;acc:=LSB to shift, @R1:=shifted MSB	
 	rrc a                    ;shift MSB
-	xch a,r2                 ;acc:=shifted MSB, R2:=shifted LSB,CY:=ex-MSB.bit0 
+	xch a,@r1                ;acc:=shifted MSB, @R1:=shifted LSB,CY:=ex-MSB.bit0 
 	djnz r7,SFTRM
-;now acc (bits 7-0): 2^-2, 2^-3, 2^-4, undef, S,S,S,S; R2:=S,therm(2^6..2^0); CY=2^-1
+;now acc (bits 7-0): 2^-2, 2^-3, 2^-4, undef, S,S,S,S; @R1:=S,therm(2^6..2^0); CY=2^-1
 	rrc a                    ;acc:=2^-1 2^-2 2^-3 2^-4 undef S S S, CY=S
 ;sign processing
 	mov r4,a                 ;save sign&fracs for later
@@ -96,15 +101,15 @@ SFTRM:  rrc a                    ;shift MSB
         mov r0,#MSBCD-1
 	mov @r0,a                ;store sign in RAM array to display
 	mov a,r4                 ;restore sign&fracs
-	xch a,r2                 ;acc:=therm,r2:=sign&fracs
+	xch a,@r1                ;acc:=therm,@r1:=sign&fracs
 	cpl a
 	jb7 PLUS                 ;check sign
 ;process negative themperature
 	mov r3,a                 ;save temp for later
-	mov a,r2                 ;frac byte
+	mov a,@r1                ;frac byte
 	cpl a
 	add a,#10h               ;convert frac byte, CY:=if need to incr integer part
-	mov r2,a                 ;save frac
+	mov @r1,a                ;save frac
 	clr a
 	addc a,r3                ;+1 to saved temp depending on carry from fracture
 	jmp PRNTRM
@@ -113,7 +118,7 @@ PLUS:	cpl a
 PRNTRM: mov r3,a                 ;save temp for later
 	call BINASCI             ;now @21H and 22H of RAM is BCD of temperature; R5.1=1 means 3-digit (@23H too)
 ;fractures processing
-	mov a,r2
+	mov a,@r1
 	swap a
 	rr a
 	rr a                     ;acc:=0 0 undef S S 2^-1 2^-2

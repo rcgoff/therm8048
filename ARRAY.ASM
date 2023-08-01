@@ -27,7 +27,7 @@ RAMRD:  mov a,@r0               ;RAM reading  @r0
 RDCOM:  jf1 WIRE                ;LCD or 1Wire output?
         call SENDD
         jmp ARRNX               ;ARRay NeXt code
-WIRE:   call OUBT1W
+WIRE:   call RDWR1W
 ARRNX:  inc r0                  ;next index
         djnz r4,ARRLOOP
         clr f0                  ;restore default (data) array type
@@ -36,15 +36,14 @@ ARRNX:  inc r0                  ;next index
         ret
 
 ;initialising sequence for LC display
-INITSEQ:        DB      28h     ;4bit mode
-                DB      08h     ;disp off
-                DB      01h     ;disp clr
-                DB      0Ch     ;disp on
-                DB      06h     ;incr without shift mode
+INITSEQ:        DB      028h    ;4bit mode
+                DB      008h    ;disp off
+                DB      001h    ;disp clr
+                DB      00Ch    ;disp on
+                DB      006h    ;incr without shift mode
 
 ;write scratchpad sequence for 1-Wire
-WRSEQ:
-                DB      0CCh    ;skip ROM
+WRSEQ:          DB      0CCh    ;skip ROM
                 DB      04Eh    ;write scratchpad
                 DB      03Fh    ;Th
                 DB      03Fh    ;Tl

@@ -31,9 +31,10 @@ BCDZER:	mov @r0,#'0'
 	xchd a,@r0               ;tens
 	ret
 
-OVER99: inc r0                   ;change ones' address if >99
-	mov r1,#MSBCD
-	mov @r1,#'1'             ;hundreds
+OVER99: dec r0
+	mov @r0,#'1'             ;hundreds
+	inc r0
+	inc r0                   ;change ones' address if >99
 	rbitst r5,1              ;set 3-digit flag
 	clr c                    ;to prevent incorrect DAA work at the rest of loop
 	jmp BCDLO1
