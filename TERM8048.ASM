@@ -106,9 +106,10 @@ SFTRM:  rrc a                    ;shift MSB
 	mov @r0,a                ;store sign in RAM array to display
 	mov a,r4                 ;restore sign&fracs
 	xch a,@r1                ;acc:=therm,@r1:=sign&fracs
-	cpl a
-	jb7 PLUS                 ;check sign
+	jb7 MINUS                ;check sign
+	jmp PRNTRM
 ;process negative themperature
+MINUS:	cpl a
 	mov r3,a                 ;save temp for later
 	mov a,@r1                ;frac byte
 	cpl a
@@ -116,8 +117,6 @@ SFTRM:  rrc a                    ;shift MSB
 	mov @r1,a                ;save frac
 	clr a
 	addc a,r3                ;+1 to saved temp depending on carry from fracture
-	jmp PRNTRM
-PLUS:	cpl a
 ;BINBCD 
 PRNTRM: mov r3,a                 ;save temp for later
 	call BINASCI             ;now @21H and 22H of RAM is BCD of temperature; R5.1=1 means 3-digit (@23H too)
