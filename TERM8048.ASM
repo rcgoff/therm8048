@@ -27,33 +27,41 @@ $MACROFILE
 ;.....
 ;.....
 
-P8748   EQU     0               ;0 or 1, changes some code if internal memory is used
-NMOS    SET     0               ;0 or 1, changes STOP routine if NMOS chip is used
+P8748   EQU     0                ;0 or 1, changes some code if internal memory is used
+NMOS    SET     0                ;0 or 1, changes STOP routine if NMOS chip is used
 
 IF P8748 EQU 1
 NMOS    SET     1
 ENDIF
 
-SCRACH EQU 30h                  ;addr of DS18B20's scratchpad copy at RAM
+SCRACH EQU 30h                   ;addr of DS18B20's scratchpad copy at RAM
 
-ABITST	MACRO bit               ;acc bit set
+ABITST	MACRO bit                ;acc bit set
         orl a,#1 SHL bit
 	endm
 
-ABITCL	MACRO bit               ;acc bit clr
+ABITCL	MACRO bit                ;acc bit clr
         anl a,#NOT(1 SHL bit)
 	endm
 
-RBITST	MACRO reg,bit           ;reg bit set
+RBITST	MACRO reg,bit            ;reg bit set
         xch a,reg
         abitst bit
         xch a,reg
 	endm
 
-RBITCL	MACRO reg,bit           ;reg bit clr
+RBITCL	MACRO reg,bit            ;reg bit clr
         xch a,reg
         abitcl bit
         xch a,reg
+	endm
+
+CMD2DS	MACRO cmd2               ;init,skip ROM,send command to DS18B20
+	   call INIT1W
+           IRP cmd, <0CCh,cmd2>
+	      mov a,#cmd
+	      call OUBT1W
+	   endm
 	endm
 
 	call INITLCD
@@ -64,19 +72,11 @@ SENLOP: call INIT1W
         mov r4,#5                ;its length
         cpl f1
         call ARRLOOP             ;send sequence to DS18B20
-        call INIT1W
-	mov a,#0CCh              ;skip ROM command
-	call OUBT1W
-	mov a,#044h              ;convert T command
-	call OUBT1W
+	cmd2ds 044h              ;convert T command
 CNVDLY:	call INBT1W
 	cpl a
 	jb7 CNVDLY               ;when conversion is finished, DS18B20 outputs 1
-RDTEMP: call INIT1W
-	mov a,#0CCh              ;skip ROM command
-	call OUBT1W
-	mov a,#0BEh              ;read scratchpad
-	call OUBT1W
+RDTEMP: cmd2ds 0BEh              ;read scratchpad command
         mov r0,#SCRACH           ;start addr to receive scratchpad
         cpl f1                   ;set 1-wire array exchange
         cpl f0                   ;set reading
