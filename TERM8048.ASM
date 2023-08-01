@@ -34,6 +34,8 @@ IF P8748 EQU 1
 NMOS    SET     1
 ENDIF
 
+SCRACH EQU 30h                  ;addr of DS18B20's scratchpad copy at RAM
+
 ABITST	MACRO bit               ;acc bit set
         orl a,#1 SHL bit
 	endm
@@ -58,7 +60,7 @@ RBITCL	MACRO reg,bit           ;reg bit clr
 	call DEGPRG
 SENLOP: call INIT1W
         jnc NOSENS
-        mov r0,#LOW WRSEQ        ;write to scratchpad command seuqence (set 10-bit resolution)
+        mov r0,#LOW WRSEQ        ;write-to-scratchpad command sequence (set 10-bit resolution)
         mov r4,#5                ;its length
         cpl f1
         call ARRLOOP             ;send sequence to DS18B20
@@ -70,17 +72,19 @@ SENLOP: call INIT1W
 CNVDLY:	call INBT1W
 	cpl a
 	jb7 CNVDLY               ;when conversion is finished, DS18B20 outputs 1
-        call INIT1W
+RDTEMP: call INIT1W
 	mov a,#0CCh              ;skip ROM command
 	call OUBT1W
 	mov a,#0BEh              ;read scratchpad
 	call OUBT1W
-        mov r0,#30h              ;start addr to receive scratchpad
+        mov r0,#SCRACH           ;start addr to receive scratchpad
         cpl f1                   ;set 1-wire array exchange
         cpl f0                   ;set reading
         mov r4,#9                ;scratchpad length
         call ARRLOOP             ;read scratchpad
-        mov r1,#31h
+        call CRC8DS              ;calculate CRC
+        jnz RDTEMP               ;re-read scratchpad if CRC error
+        mov r1,#SCRACH+1
 	mov a,@r1                ;acc:=therm.MSB
         dec r1                   ;@r1:=therm.LSB
 
@@ -172,7 +176,7 @@ DEGPRG: mov a,#40h
 	mov r0,#LOW DEGCHR      ;degree symbol bitmap
 	call ARROUT
 	mov a,#80h
-	call SENDI		;deg DDRAM to 0h (line1)
+	call SENDI		;set DDRAM to 0h (line1)
 	ret
 
 ;blank lines between INCLUDEs are mandatory for INTEL ASM48
@@ -187,6 +191,8 @@ $INCLUDE (BINBCD.ASM)
 $INCLUDE (LCDSFT.ASM)
 
 $INCLUDE (ARRAY.ASM)
+
+$INCLUDE (CRC8.ASM)
 
 ;------------------strings for output
 NOSTR:  DB      'NoSensor'
