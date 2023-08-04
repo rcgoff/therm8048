@@ -29,12 +29,14 @@ $MACROFILE
 
 P8748   EQU     0                ;0 or 1, changes some code if internal memory is used
 NMOS    SET     0                ;0 or 1, changes STOP routine if NMOS chip is used
+CRCDISP EQU     1                ;0 or 1, print CRC error counter or don't
 
-IF P8748 EQU 1
+IF P8748
 NMOS    SET     1
 ENDIF
 
-SCRACH EQU 30h                   ;addr of DS18B20's scratchpad copy at RAM
+MSBCD   EQU     21h              ;addr of ASCII therm value at RAM
+SCRACH  EQU     30h              ;addr of DS18B20's scratchpad copy at RAM
 
 ABITST	MACRO bit                ;acc bit set
         orl a,#1 SHL bit
@@ -64,6 +66,11 @@ CMD2DS	MACRO cmd2               ;init,skip ROM,send command to DS18B20
 	   endm
 	endm
 
+IF CRCDISP
+	clr a
+	mov r0,#018h
+	mov @r0,a                ;init CRC err cnt
+ENDIF
 	call INITLCD
 	call DEGPRG
 SENLOP: call INIT1W
@@ -83,7 +90,11 @@ RDTEMP: cmd2ds 0BEh              ;read scratchpad command
         mov r4,#9                ;scratchpad length
         call ARRLOOP             ;read scratchpad
         call CRC8DS              ;calculate CRC
+IF CRCDISP
+        jnz ERRCRC               ;inc CRC err cnt and re-read scratchpad if CRC error
+ELSE
         jnz RDTEMP               ;re-read scratchpad if CRC error
+ENDIF
         mov r1,#SCRACH+1
 	mov a,@r1                ;acc:=therm.MSB
         dec r1                   ;@r1:=therm.LSB
@@ -119,6 +130,7 @@ MINUS:	cpl a
 	addc a,r3                ;+1 to saved temp depending on carry from fracture
 ;BINBCD 
 PRNTRM: mov r3,a                 ;save temp for later
+        mov r0,#MSBCD+1          ;second byte addr for BINASCI
 	call BINASCI             ;now @21H and 22H of RAM is BCD of temperature; R5.1=1 means 3-digit (@23H too)
 ;fractures processing
 	mov a,@r1
@@ -156,6 +168,26 @@ TREDGT:	orl a,#1
         call ARRLOOP             ;print sign, 2 or 3 digits of temperature and fracture (if present)
 	clr a
 	call SENDD               ;print degree symbol
+IF CRCDISP
+        mov a,#11000000b
+        call SENDI               ;set DDRAM to 40h (line2)
+        mov r0,#LOW ERRSTR
+        mov r4,#5                ;5 chars
+        mov r5,#0
+        call ARRLOOP             ;print 'Err: ' string
+        mov r0,#18h
+        mov a,@r0                ;get CRC error counter
+        mov r0,#3Eh
+        call BINASCI             ;make CRC error counter ASCII decimal from 3Dh
+        mov r4,#3                ;max BCD length
+        mov r0,#3Dh              ;CRC cntr addr (if 3-digit, will not saved after BINASCI)
+        xch a,r5
+        jb1 CRCPRN               ;check CRC err counter length
+        dec r4                   ;correct LCD out length if necessary
+CRCPRN: abitst 0                 ;set LCD out from RAM
+        xch a,r5
+        call ARRLOOP             ;print CRC counter
+ENDIF
 
 SENPRE:	mov a,#80h
         call SENDI               ;set DDRAM to 0h (line1)
@@ -166,7 +198,7 @@ SENPRE:	mov a,#80h
 
 NOSENS: mov r5,#0
 	mov r0,#LOW NOSTR       ;not necessary if NOSTR is next to INITSEQ
-	call ARROUT             ;print SENPRE or NOSTR (8 bytes)
+	call ARROUT             ;print 'NoSensor' (8 bytes)
 	jmp SENPRE
 
 ;program degree character
@@ -178,7 +210,26 @@ DEGPRG: mov a,#40h
 	call SENDI		;set DDRAM to 0h (line1)
 	ret
 
+IF CRCDISP
+ERRCRC: sel rb1
+        inc r0                  ;inc CRC err cnt
+	sel rb0
+	jmp RDTEMP              ;re-read temp
+ENDIF
+
 ;blank lines between INCLUDEs are mandatory for INTEL ASM48
+IF CRCDISP
+
+$INCLUDE (BINBCD.ASM)
+
+org 	100h
+
+$INCLUDE (1WIRE.ASM)
+
+$INCLUDE (DELAY.ASM)
+
+ELSE
+
 $INCLUDE (1WIRE.ASM)
 
 $INCLUDE (DELAY.ASM)
@@ -186,6 +237,8 @@ $INCLUDE (DELAY.ASM)
 org 	100h
 
 $INCLUDE (BINBCD.ASM)
+
+ENDIF
 
 $INCLUDE (LCDSFT.ASM)
 
@@ -195,6 +248,7 @@ $INCLUDE (CRC8.ASM)
 
 ;------------------strings for output
 NOSTR:  DB      'NoSensor'
+ERRSTR: DB      'Err: '
 
 ;degree symbol bitmap
 DEGCHR: DB      0Ch     ;.**..

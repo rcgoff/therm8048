@@ -2,18 +2,16 @@
 ;BINASCI
 ;---------------
 ;Conversion of 7-bit unsigned binary in Acc 
-;to BCD ASCII codes in MSBCD and MSBCD+1,
-;and if >99 - in MSBCD+2 too (3-digit).
+;to BCD ASCII codes @r0-1 and @r0,
+;and if >99 - in @r0+1 too (3-digit).
 ;If 3-digit, bit 1 @R5 set to 1
 
 ;L.Yadrennikov 03.2023
 
-MSBCD   equ     21h
 
 BINASCI:
 	clr c
 	rbitcl r5,1              ;clear 3-digit flag
-	mov r0,#MSBCD+1
 	jz BCDZER                ;zeros are incorrectly processed by DJNZ, so, skip
 ;convert to packed BCD in Acc
 	mov r7,a
