@@ -23,12 +23,11 @@ BCDLOP:	inc a
 	jc OVER99                ;DAA returns carry if operand was 9Ah, converted to 00 + CY
 BCDLO1:	djnz r7,BCDLOP
 ;unpack and form ASCII
-BCDZER:	mov @r0,#'0' 
-	xchd a,@r0               ;LSD (ones)
-	swap a
+BCDZER: mov @r0,#'0'+3h
+	xchd a,@r0               ;write LSD (ones), now Acc:="MSD 3"
+	swap a                   ;now Acc:="3 MSD",i.e. MSD in ASCII
 	dec r0
-	mov @r0,#'0'
-	xchd a,@r0               ;tens
+	mov @r0,a                ;write tens
 	ret
 
 OVER99: dec r0
