@@ -66,6 +66,16 @@ CMD2DS	MACRO cmd2               ;init,skip ROM,send command to DS18B20
 	   endm
 	endm
 
+PRN23   MACRO                    ;print 2 or 3 decoded BCD bytes, addr in r0, len. for 3 bytes in r4
+LOCAL TREDGT
+	xch a,r5                 ;2 or 3 digits?
+	jb1 TREDGT               ;jump if 3
+	dec r4
+TREDGT:	abitst 0                 ;RAM
+	xch a,r5                 ;save flags
+        call ARRLOOP
+        endm
+
 IF CRCDISP
 	clr a
 	mov r0,#018h
@@ -160,12 +170,7 @@ NOFRAC: mov r4,#4
 PRNTMP: mov a,#1
 	call SENDI               ;clear display
 	mov r0,#MSBCD-1
-	xch a,r5
-	jb1 TREDGT
-	dec r4
-TREDGT:	orl a,#1
-	xch a,r5
-        call ARRLOOP             ;print sign, 2 or 3 digits of temperature and fracture (if present)
+        prn23                    ;print sign, 2 or 3 digits of temperature and fracture (if present)
 	clr a
 	call SENDD               ;print degree symbol
 IF CRCDISP
@@ -181,12 +186,7 @@ IF CRCDISP
         call BINASCI             ;make CRC error counter ASCII decimal from 3Dh
         mov r4,#3                ;max BCD length
         mov r0,#3Dh              ;CRC cntr addr (if 3-digit, will not saved after BINASCI)
-        xch a,r5
-        jb1 CRCPRN               ;check CRC err counter length
-        dec r4                   ;correct LCD out length if necessary
-CRCPRN: abitst 0                 ;set LCD out from RAM
-        xch a,r5
-        call ARRLOOP             ;print CRC counter
+        prn23                    ;print CRC counter
 ENDIF
 
 SENPRE:	mov a,#80h
