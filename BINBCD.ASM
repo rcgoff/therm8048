@@ -11,45 +11,45 @@
 
 
 BINASCI:
-	clr c
-	rbitcl r5,1              ;clear 3-digit flag
-	jz BCDZER                ;zeros are incorrectly processed by DJNZ, so, skip
+        clr c
+        rbitcl r5,1              ;clear 3-digit flag
+        jz BCDZER                ;zeros are incorrectly processed by DJNZ, so, skip
 ;convert to packed BCD in Acc
-	mov r7,a
-	clr a
-BCDLOP:	inc a
-	da a
-	jc OVER99                ;DAA returns carry if operand was 9Ah, converted to 00 + CY
-BCDLO1:	djnz r7,BCDLOP
+        mov r7,a
+        clr a
+BCDLOP: inc a
+        da a
+        jc OVER99                ;DAA returns carry if operand was 9Ah, converted to 00 + CY
+BCDLO1: djnz r7,BCDLOP
 ;unpack and form ASCII
 BCDZER: mov @r0,#'0'+3h
-	xchd a,@r0               ;write LSD (ones), now Acc:="MSD 3"
-	swap a                   ;now Acc:="3 MSD",i.e. MSD in ASCII
-	dec r0
-	mov @r0,a                ;write tens
-	ret
+        xchd a,@r0               ;write LSD (ones), now Acc:="MSD 3"
+        swap a                   ;now Acc:="3 MSD",i.e. MSD in ASCII
+        dec r0
+        mov @r0,a                ;write tens
+        ret
 
 OVER99: dec r0
-	xch a,r5
+        xch a,r5
 IF CRCDISP
-	jb1 OVR199
+        jb1 OVR199
 ENDIF
-	mov @r0,#'1'             ;hundreds
-	abitst 1                 ;set 3-digit flag
+        mov @r0,#'1'             ;hundreds
+        abitst 1                 ;set 3-digit flag
 OVRCOM: xch a,r5
-	inc r0
-	inc r0                   ;change ones' address if >99
-	clr c                    ;to prevent incorrect DAA work at the rest of loop
-	jmp BCDLO1
+        inc r0
+        inc r0                   ;change ones' address if >99
+        clr c                    ;to prevent incorrect DAA work at the rest of loop
+        jmp BCDLO1
 
 IF CRCDISP
 OVR199: dec r0
-	inc @r0                  ;'2' in hundreds
-	jmp OVRCOM
+        inc @r0                  ;'2' in hundreds
+        jmp OVRCOM
 ENDIF
 
 $NOLIST
-;----------------------------obsolete	
+;----------------------------obsolete   
 ;L.Yadrennikov 28.04.2019
 
 ;;"2" complement to 10d is (256-10)=246d=1111.0110=F6h

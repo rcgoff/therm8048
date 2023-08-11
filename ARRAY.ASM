@@ -19,7 +19,7 @@ ARRLOOP:                        ;entry when ARRLEN is other (can Vary)
         mov a,r5
         jb0 RAMRD
         abitst 2                ;set array call flag
-	mov r5,a
+        mov r5,a
         mov a,r0                ;ROM reading @r0
         movp a,@a
         jmp RDCOM               ;to ReaD COMmon part
