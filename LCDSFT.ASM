@@ -111,9 +111,9 @@ SFTREG: rl a                    ;move MSB to LSB
 SFTLOOP:rl a                    ;place next data bit for output to bit1 position
         movd p4,a               ;out bit1 to shift register
         djnz r2,SFTLOOP
-IF P8748 EQU 1
-        abitst 1                ;force DI to 1
-        abitcl 1                ;force DI to 0 - writing to LCD controller
+IF P8748
+        pbitst p2,1             ;force DI to 1
+        pbitcl p2,1             ;force DI to 0 - writing to LCD controller
 ELSE
         movp3 a,@a              ;DI (P2.1) 0->1->0 switching - wr to LCD
 ENDIF

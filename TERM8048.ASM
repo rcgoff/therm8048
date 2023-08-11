@@ -49,6 +49,15 @@ RBITCL  MACRO reg,bit            ;reg bit clr
         xch a,reg
         endm
 
+PBITST  MACRO port,bit           ;port bit set
+        orl port,#1 SHL bit
+        endm
+
+PBITCL  MACRO port,bit           ;port bit clr
+        anl port,#NOT(1 SHL bit)
+        endm
+
+
 CMD2DS  MACRO cmd2               ;init,skip ROM,send command to DS18B20
            call INIT1W
            IRP cmd, <0CCh,cmd2>
