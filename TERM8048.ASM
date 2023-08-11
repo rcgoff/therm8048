@@ -1,41 +1,32 @@
 $NOPAGING
 $MACROFILE
-;8048 thermometer
+;8048 thermometer using DS18B20 sensor and HD44780-based LCD
 ;main file
-;uses BINBCD, LCDSFT, 1WIRE
-;unfortunately 8048 assemblers I use don't support linking
-;so, only including
+;Written for Intel ASM48
+;unfortunately this assembler doesn't support linking
+;so, only including:
+;uses BINBCD, LCDSFT, 1WIRE, ARRAY, CRC8
+;L.Yadrennikov 2019,2023. CRC8 based on Tronix code
 
-;R5 is a user-flag register
+;4MHz - every single-byte command takes 15/4=3.75usec, double-byte 7.5usec
+
+;pin 25 (extender strobe) - CLK of sft.reg for HD44780 LCD
+;pin 22 (P2.1) - DATA of named sft.reg
+;pin 27 (P1.0) - data pin of DS18B20
+
+;F0: data (0) / command (1) send to LCD in ARROUT,SENDI/SENDD
+;F1: LCD (0) / 1Wire (1) string send in ARROUT
+;       defaults are 0's
+
+;R5 is an user-flag register
 ;       bit 0: ROM (0) / RAM (1) reading for ARROUT, default 0
 ;       bit 1: 2-digit (0) / 3-digit (1) temperature received
 ;       bit 2: 1 if it's array call (for SENDD/SENDI)
 
-
-;29.04.2019 - notes for future programming:
-;'+' has ASCII code 2Bh
-;'-' has ASCII code 2Dh, i.e. '-':= '+' + 2
-;'1/2' has code F2h
-;
-;
-;degree symbol in MT-16S2D:
-;.**..  =0Ch
-;*..*.  =12h
-;*..*.  =12h
-;.**..  =0Ch
-;.....
-;.....
-;.....
-
 P8748   EQU     0                ;0 or 1, changes some code if internal memory is used
-NMOS    SET     0                ;0 or 1, changes STOP routine if NMOS chip is used
 CRCDISP EQU     1                ;0 or 1, print CRC error counter or don't
 
-IF P8748
-NMOS    SET     1
-ENDIF
-
-MSBCD   EQU     21h              ;addr of ASCII therm value at RAM
+MSBCD   EQU     21h              ;addr of ASCII temperathure value at RAM
 SCRACH  EQU     30h              ;addr of DS18B20's scratchpad copy at RAM
 
 ABITST  MACRO bit                ;acc bit set
