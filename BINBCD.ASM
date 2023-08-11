@@ -1,12 +1,13 @@
 ;---------------
 ;BINASCI
 ;---------------
-;Conversion of 7-bit unsigned binary in Acc 
+;Conversion of 8-bit unsigned binary in Acc
+;(if CRCDISP=1) or 7-bit (if CRCDISP=0)
 ;to BCD ASCII codes @r0-1 and @r0,
 ;and if >99 - in @r0+1 too (3-digit).
 ;If 3-digit, bit 1 @R5 set to 1
 
-;L.Yadrennikov 03.2023
+;L.Yadrennikov 03,08.2023
 
 
 BINASCI:
@@ -29,13 +30,23 @@ BCDZER: mov @r0,#'0'+3h
 	ret
 
 OVER99: dec r0
+	xch a,r5
+IF CRCDISP
+	jb1 OVR199
+ENDIF
 	mov @r0,#'1'             ;hundreds
+	abitst 1                 ;set 3-digit flag
+OVRCOM: xch a,r5
 	inc r0
 	inc r0                   ;change ones' address if >99
-	rbitst r5,1              ;set 3-digit flag
 	clr c                    ;to prevent incorrect DAA work at the rest of loop
 	jmp BCDLO1
 
+IF CRCDISP
+OVR199: dec r0
+	inc @r0                  ;'2' in hundreds
+	jmp OVRCOM
+ENDIF
 
 $NOLIST
 ;----------------------------obsolete	
